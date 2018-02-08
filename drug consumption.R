@@ -30,7 +30,7 @@ library(randomForest)
 #load data
 drug<-read.table("drug_consumption.data.txt",header=F,sep = ",")
 
-write.csv(drug,file = "raw_drug.csv",row.names = F)
+#write.csv(drug,file = "raw_drug.csv",row.names = F)
 write.csv(drug,file = "dr.csv",row.names = F)
 
 #data preprocessing
@@ -707,6 +707,8 @@ drug$VSA<-as.factor(drug$VSA)
 
 #visualization
 ggplot(drug,aes(x=Age,fill=Gender))+geom_bar()
+ggplot(drug,aes(x=Country))+geom_bar()
+ggplot(drug,aes(x=Education,fill=Cannabis))+geom_bar()
 ggplot(drug,aes(x=Alcohol,fill=Cscore))+geom_bar()
 ggplot(drug,aes(x=Caffeine,fill=Oscore))+geom_bar()
 ggplot(drug,aes(x=Gender,fill=Education))+geom_bar()
@@ -724,6 +726,7 @@ scores<-subset(drug,select = c(Nscore,Escore,Oscore,Ascore,Cscore))
 ggplot(drug,aes(x=Age,fill=(Nicotine)))+geom_bar()
 ggplot(drug,aes(x=Gender,fill=Nicotine))+geom_bar()
 ggplot(drug,aes(x=Education,fill=Nicotine))+geom_bar()
+ggplot(drug,aes(x=Education,fill=Cannabis))+geom_bar()
 
 n1<-filter(drug,Nicotine==1)
 a1<-filter(drug,Alcohol==1)
@@ -771,7 +774,7 @@ ggplot(drug,aes(x=Ascore,fill=(Caffeine)))+geom_bar()
 ggplot(drug,aes(x=Cscore,fill=(Caffeine)))+geom_bar()
 
 #Cannabis
-ggplot(drug,aes(x=Nscore,fill=(Cannabis)))+geom_bar()
+ggplot(drug,aes(x=Nscore,fill=(Crack)))+geom_bar()
 ggplot(drug,aes(x=Escore,fill=(Cannabis)))+geom_bar()
 ggplot(drug,aes(x=Oscore,fill=(Cannabis)))+geom_bar()
 ggplot(drug,aes(x=Ascore,fill=(Cannabis)))+geom_bar()
@@ -891,6 +894,8 @@ pr<-round(pr)
 
 confusionMatrix(pr,val$Alcohol)
 
+library(MLmetrics)
+Precision(val$Alcohol,pr)
 # 2) Amphet(76.13%)
 glm.model<-glm(Amphet~.,data = train,family = "binomial")
 summary(glm.model)
@@ -956,11 +961,12 @@ for (y in DV){
   models[[y]] <- glm(form, data=train, family='binomial') 
  
 }
-models[1]
 lapply(models,summary)
 
+models[1]
 
 
+pr<-list()
 for (i in 1:19) {
   
   
@@ -979,9 +985,25 @@ for (i in 1:19) {
   
   }
 
-acc[17]
+for (i in 1:19) {
+  print(acc[i])
+  
+}
 
+acct<-list()
+for (i in 1:19) {
+  l<-as.data.frame(pr[i])
+  
+  l<-round(l)
+  
+  acct[[i]]<-confusionMatrix(unlist(l),test[,12+i])
+  
+}
 
+for (i in 1:19) {
+  print(acct[i])
+  
+}
 # for (j in 1:19) {
 #   confusionMatrix(p[j],test[,12+j])
 # }
@@ -1106,10 +1128,10 @@ for (i in 13:31){
   m[[i]] <- C5.0(x=train[,-i],y=train[,i],trials = 5) 
   
 }
-m[13]
+
 lapply(m,summary)
 
-
+m[13]
 
 
 for (i in 13:31) {
@@ -1129,25 +1151,39 @@ for (i in 13:31) {
   c.acc[[i]]<-confusionMatrix(unlist(c.l),val[,i])
   
 }
+for (i in 13:31) {
+print(c.acc[i])  
+}
 
-c.acc[13]
-c.acc[14]
-c.acc[15]
-c.acc[16]
-c.acc[17]
-c.acc[18]
-c.acc[19]
-c.acc[20]
-c.acc[21]
-c.acc[22]
-c.acc[23]
-c.acc[24]
-c.acc[25]
-c.acc[26]
-c.acc[27]
-c.acc[28]
-c.acc[29]
-c.acc[31]
+
+c.acct<-list()
+for (i in 13:31) {
+  c.l<-as.data.frame(c.p[i])
+  c.acct[[i]]<-confusionMatrix(unlist(c.l),test[,i])
+  
+}
+for (i in 13:31) {
+  print(c.acct[i])  
+}
+# 
+# c.acc[13]
+# c.acc[14]
+# c.acc[15]
+# c.acc[16]
+# c.acc[17]
+# c.acc[18]
+# c.acc[19]
+# c.acc[20]
+# c.acc[21]
+# c.acc[22]
+# c.acc[23]
+# c.acc[24]
+# c.acc[25]
+# c.acc[26]
+# c.acc[27]
+# c.acc[28]
+# c.acc[29]
+# c.acc[31]
 
 
 ###Random forest
@@ -1163,7 +1199,7 @@ confusionMatrix(rf.p,val$Alcohol)
 #2)Amphet(68.97%)
 
 rf.model<-randomForest(Amphet~.,data = train,ntree=5)
-
+rf.model$importance
 rf.p<-predict(rf.model,val)
 
 confusionMatrix(rf.p,val$Amphet)
@@ -1171,7 +1207,7 @@ confusionMatrix(rf.p,val$Amphet)
 #3)Amyl(83.55%)
 
 rf.model<-randomForest(Amyl~.,data = train,ntree=5)
-
+rf.model$importance
 rf.p<-predict(rf.model,val)
 
 confusionMatrix(rf.p,val$Amyl)
@@ -1179,7 +1215,7 @@ confusionMatrix(rf.p,val$Amyl)
 #4)Benzos(71.88%)
 
 rf.model<-randomForest(Benzos~.,data = train,ntree=5)
-
+rf.model$importance
 rf.p<-predict(rf.model,val)
 
 confusionMatrix(rf.p,val$Benzos)
@@ -1187,7 +1223,7 @@ confusionMatrix(rf.p,val$Benzos)
 #5)caffeine(89.12%)
 
 rf.model<-randomForest(Caffeine~.,data = train,ntree=5)
-
+rf.model$importance
 rf.p<-predict(rf.model,val)
 
 confusionMatrix(rf.p,val$Caffeine)
@@ -1201,6 +1237,10 @@ rf.p<-predict(rf.model,val)
 confusionMatrix(rf.p,val$Cannabis)
 
 information.gain(Cannabis~.,train)
+
+#
+rf.model<-randomForest(Cocaine~.,data = train,ntree=5)
+rf.model$importance
 
 
 rf.model <- list()
@@ -1237,24 +1277,43 @@ for (i in 1:19) {
   
 }
 
-rf.acc[1]
-rf.acc[2]
-rf.acc[3]
-rf.acc[4]
-rf.acc[5]
-rf.acc[6]
-rf.acc[7]
-rf.acc[8]
-rf.acc[9]
-rf.acc[10]
-rf.acc[11]
-rf.acc[12]
-rf.acc[13]
-rf.acc[14]
-rf.acc[15]
-rf.acc[16]
-rf.acc[17]
-rf.acc[19]
+for (i in 1:19) {
+  print(rf.acc[i])
+  
+}
+
+rf.acct<-list()
+for (i in 1:19) {
+  l<-as.data.frame(rf.p[i])
+  
+  
+  rf.acct[[i]]<-confusionMatrix(unlist(l),test[,12+i])
+  
+}
+
+for (i in 1:19) {
+  print(rf.acct[i])
+  
+}
+
+# rf.acc[1]
+# rf.acc[2]
+# rf.acc[3]
+# rf.acc[4]
+# rf.acc[5]
+# rf.acc[6]
+# rf.acc[7]
+# rf.acc[8]
+# rf.acc[9]
+# rf.acc[10]
+# rf.acc[11]
+# rf.acc[12]
+# rf.acc[13]
+# rf.acc[14]
+# rf.acc[15]
+# rf.acc[16]
+# rf.acc[17]
+# rf.acc[19]
 
 ##############  SVM
 
@@ -1342,22 +1401,83 @@ for (i in 1:19) {
   
 }
 
-svm.acc[1]
-svm.acc[2]
-svm.acc[3]
-svm.acc[4]
-svm.acc[5]
-svm.acc[6]
-svm.acc[7]
-svm.acc[8]
-svm.acc[9]
-svm.acc[10]
-svm.acc[11]
-svm.acc[12]
-svm.acc[13]
-svm.acc[14]
-svm.acc[15]
-svm.acc[16]
-svm.acc[17]
-svm.acc[19]
+for (i in 1:19) {
+  print(svm.acc[i])
+  
+}
+
+svm.acct<-list()
+for (i in 1:19) {
+  l<-as.data.frame(svm.p[i])
+  
+  
+  svm.acct[[i]]<-confusionMatrix(unlist(l),test[,12+i])
+  
+}
+
+for (i in 1:19) {
+  print(svm.acct[i])
+  61.5
+}
+
+# svm.acc[1]
+# svm.acc[2]
+# svm.acc[3]
+# svm.acc[4]
+# svm.acc[5]
+# svm.acc[6]
+# svm.acc[7]
+# svm.acc[8]
+# svm.acc[9]
+# svm.acc[10]
+# svm.acc[11]
+# svm.acc[12]
+# svm.acc[13]
+# svm.acc[14]
+# svm.acc[15]
+# svm.acc[16]
+# svm.acc[17]
+# svm.acc[19]
+
+###Naive bayes using for loop
+
+n.model <- list()
+naive.p<-list()
+DV1<-colnames(drug[,13:31])
+IV1<-colnames(drug)
+
+
+for (y in DV1){
+  form <- formula(paste(y, "~", "."))
+  n.model[[y]] <- naiveBayes(form, data=train) 
+  
+}
+n.model[1]
+lapply(n.model,summary)
+
+
+
+for (i in 1:19) {
+  
+  
+  naive.p[[i]]<-predict(n.model[i],newdata = val)
+  
+  
+}
+naive.p
+
+n.acc<-list()
+for (i in 1:19) {
+  l<-as.data.frame(naive.p[i])
+  
+  
+  n.acc[[i]]<-confusionMatrix(unlist(l),val[,12+i])
+  
+}
+
+for (i in 1:19) {
+  print(n.acc[i])
+  
+}
+
 
